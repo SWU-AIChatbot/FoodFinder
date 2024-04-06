@@ -37,6 +37,8 @@ class MainActivity : AppCompatActivity() {
         imageView = findViewById(R.id.imageView)
         picture = findViewById(R.id.button)
 
+
+        // 버튼 OnClickListener
         picture.setOnClickListener {
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
                 val cameraIntent = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
@@ -47,6 +49,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    // 이미지 분류 함수 =
     private fun classifyImage(image: Bitmap) {
         try {
             val model = Model.newInstance(applicationContext)
@@ -82,9 +85,13 @@ class MainActivity : AppCompatActivity() {
                     maxPos = i
                 }
             }
-            val classes = arrayOf("삼겹살", "불고기", "잡채", "물회", "육회")
+
+            // 음식 클래스 배열
+            val classes = arrayOf("삼겹살", "불고기", "잡채", "물회", "육회", "산낙지", "짜장면", "비빔냉면", "물냉면", "파전", "주꾸미볶음", "떡볶이", "족발", "순대", "추어탕", "삼계탕", "순두부찌개", "김치찌개", "간장게장", "양념게장", "비빔밥", "김밥", "배추김치", "곱창전골")
             result.text = classes[maxPos]
 
+
+            // 분류된 음식으로 TextView
             var s = ""
             for (i in classes.indices) {
                 s += String.format("%s: %.1f%%\n", classes[i], confidences[i] * 100)
