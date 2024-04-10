@@ -7,7 +7,7 @@
     tools:context=".MainActivity">
 
     <ImageView
-        android:id="@+id/main_title"
+        android:id="@+id/main_title_iv"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:src="@drawable/title"
@@ -18,7 +18,7 @@
 
 
     <ImageView
-        android:id="@+id/main_logo"
+        android:id="@+id/main_logo_iv"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:src="@drawable/camera"
@@ -26,7 +26,7 @@
         android:layout_marginEnd="40dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/main_title" />
+        app:layout_constraintTop_toBottomOf="@+id/main_title_iv" />
 
 
 
@@ -39,7 +39,7 @@
         android:layout_marginEnd="20dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/main_logo" />
+        app:layout_constraintTop_toBottomOf="@+id/main_logo_iv" />
 
 
     <LinearLayout
@@ -54,7 +54,7 @@
         app:layout_constraintTop_toBottomOf="@+id/line" >
 
         <ImageView
-            android:id="@+id/menu_btn"
+            android:id="@+id/menu_iv"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:src="@drawable/group"
@@ -63,7 +63,7 @@
             app:layout_constraintStart_toStartOf="parent" />
 
         <ImageView
-            android:id="@+id/food_btn"
+            android:id="@+id/food_iv"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:src="@drawable/group2"
