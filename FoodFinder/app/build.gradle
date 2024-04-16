@@ -30,6 +30,9 @@ android {
     kotlinOptions {
         jvmTarget = '1.8'
     }
+    buildFeatures {     //  CameraX에서 ViewBinding을 사용
+        viewBinding true
+    }
 }
 
 dependencies {
