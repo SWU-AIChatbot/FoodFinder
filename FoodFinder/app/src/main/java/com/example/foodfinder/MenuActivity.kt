@@ -1,7 +1,9 @@
 package com.example.foodfinder
 
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
@@ -15,6 +17,7 @@ import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.example.foodfinder.databinding.ActivityMenuBinding
+import com.theartofdev.edmodo.cropper.CropImage
 import java.io.File
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
@@ -80,7 +83,7 @@ class MenuActivity : AppCompatActivity() {
                         Log.d(TAG, "Photo capture succeeded: $savedUri")
 
                         // 이미지 crop - 이미지가 성공적으로 찍혔으므로 크롭 액티비티를 시작
-                        // startCrop(savedUri)
+                        startCrop(savedUri)
                     }
                 }
             )
@@ -163,5 +166,31 @@ class MenuActivity : AppCompatActivity() {
                 finish()
             }
         }
+    }
+
+    // 이미지 crop
+    private fun startCrop(imageUri: Uri) {
+        CropImage.activity(imageUri).start(this@MenuActivity)
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {   // 이미지 자르기 누른 후
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode == CropImage.CROP_IMAGE_ACTIVITY_REQUEST_CODE) {
+            val result: CropImage.ActivityResult = CropImage.getActivityResult(data)
+            if (resultCode == RESULT_OK) {
+                val resultUri: Uri = result.uri
+
+                // MenuInfo 화면으로 전환
+                nextActivity(resultUri)
+            }
+        }
+    }
+
+    // 다음 액티비티 화면으로 전환
+    private fun nextActivity(imageUri: Uri) {
+        val intent = Intent(this, MenuInfoActivity::class.java)   // 다음 화면으로 이동하기 위한 인텐트 객체 생성
+        intent.putExtra("image_uri", imageUri.toString())
+        startActivity(intent)  // 화면 전환
+        finish()
     }
 }
