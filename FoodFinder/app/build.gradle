@@ -53,4 +53,7 @@ dependencies {
 
     // 이미지 crop
     implementation"com.theartofdev.edmodo:android-image-cropper:2.8.0"
+
+    // To recognize Korean script - ml kit 한국어 인식
+    implementation 'com.google.mlkit:text-recognition-korean:16.0.0'
 }

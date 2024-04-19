@@ -49,7 +49,7 @@ class MenuActivity : AppCompatActivity() {
                 this, REQUIRED_PERMISSIONS, REQUEST_CODE_PERMISSIONS)
         }
 
-        // 이미지 임시 파일 생성 -> 캐시 생성(data/data/패키지/cache) -> 실험중
+        // 이미지 임시 파일 생성 -> 캐시 생성(data/data/패키지/cache)
         photoFile = File(applicationContext.cacheDir, "foodImage.jpg")
 
         // Set up the listeners for take photo and video capture buttons
@@ -60,21 +60,18 @@ class MenuActivity : AppCompatActivity() {
 
     // 사진 찍기 함수
     private fun takePhoto() {
-
         if(!photoClick) {       // 카메라 찍는 버튼을 여러번 연속 클릭하는 것을 방지하기 위해 if문 작성(photoClick 변수가 false일 때만 실행 이후 true로 변경됨)
             // Get a stable reference of the modifiable image capture use case
             val imageCapture = imageCapture ?: return
-
             // ImageCapture.OutputFileOptions는 새로 캡처한 이미지를 저장하기 위한 옵션
             // 저장 위치 및 메타데이터를 구성하는데 사용
             val outputOptions = ImageCapture.OutputFileOptions.Builder(photoFile).build()
-
             imageCapture.takePicture(           // 이미지 찍음
                 outputOptions,
                 ContextCompat.getMainExecutor(this),
                 object : ImageCapture.OnImageSavedCallback {
                     override fun onError(exc: ImageCaptureException) {
-                        Log.e(TAG, "Photo capture failed: ${exc.message}", exc)
+                        Log.e(TAG, "Photo capture failed : ${exc.message}", exc)
                     }
 
                     override fun onImageSaved(output: ImageCapture.OutputFileResults) {
@@ -188,6 +185,7 @@ class MenuActivity : AppCompatActivity() {
 
     // 다음 액티비티 화면으로 전환
     private fun nextActivity(imageUri: Uri) {
+        Log.d(TAG, "실험4:")
         val intent = Intent(this, MenuInfoActivity::class.java)   // 다음 화면으로 이동하기 위한 인텐트 객체 생성
         intent.putExtra("image_uri", imageUri.toString())
         startActivity(intent)  // 화면 전환
