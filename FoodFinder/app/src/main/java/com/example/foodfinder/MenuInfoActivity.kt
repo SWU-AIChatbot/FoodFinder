@@ -13,6 +13,8 @@ import com.google.mlkit.vision.text.korean.KoreanTextRecognizerOptions
 import java.io.IOException
 
 class MenuInfoActivity : AppCompatActivity() {
+    private lateinit var koreanText: String // 인식된 한국어 텍스트
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_menu_info)
@@ -21,19 +23,20 @@ class MenuInfoActivity : AppCompatActivity() {
         val menuname_kr_tv = findViewById<TextView>(R.id.menuname_kr_tv)    // 번역 전 텍스트뷰(이미지 인식 후 한글 텍스트뷰)
 
         val imageUri: Uri
-        var koreanText: String  // 인식된 한국어 텍스트
 
         if(intent.hasExtra("image_uri")) {      // intent로 받아온 uri가 있을 경우
             val imageUriString = intent.getStringExtra("image_uri")
             imageUri = Uri.parse(imageUriString)    // String -> Uri
-            Log.d("Translation", "실험5")
+
             // 이미지 텍스트 인식
             val ocrImage: InputImage? = imageFromPath(this, imageUri)   // 이미지 uri 사용하여 InputImage 객체 만들기
             if (ocrImage != null) {
-                // 텍스트 인식
-                recognizeText(ocrImage) { result ->
-                    menuname_kr_tv.text = result
-                    koreanText = result    // 인식된 한국어 텍스트
+                recognizeText(ocrImage) { recognizedResult ->   // 텍스트 인식
+                    koreanText = recognizedResult    // 인식된 한국어 텍스트
+                    menuname_kr_tv.text = recognizedResult
+                    Log.d("Translation", "Text recognition succeeded1: $recognizedResult")
+
+                    translateText(koreanText, menuname_us_tv)   // 번역
                 }
             }
         }
@@ -42,7 +45,7 @@ class MenuInfoActivity : AppCompatActivity() {
     private fun imageFromPath(context: Context, uri: Uri): InputImage? {    // 파일 uri 사용하여 InputImage 객체 만들기
         // [START image_from_path]
         val image: InputImage
-        Log.d("Translation", "실험7")
+
         try {
             image = InputImage.fromFilePath(context, uri)
             return image
@@ -62,7 +65,7 @@ class MenuInfoActivity : AppCompatActivity() {
         // [START run_detector]
         recognizer.process(image).addOnSuccessListener { visionText ->          // 인식 성공
             val resultText = visionText.text
-            Log.d("Translation", "Translated text 번역: $resultText")
+            Log.d("Translation", "Text recognition succeeded3: $resultText")
             onComplete(resultText)
         }.addOnFailureListener { e ->                                             // 인식 실패
             Log.e("Translation", "Text recognition failed: ${e.message}")
@@ -71,5 +74,17 @@ class MenuInfoActivity : AppCompatActivity() {
                 Toast.makeText(this, "Text recognition failed: ${e.message}", Toast.LENGTH_SHORT).show()
             }
         }
+    }
+
+    private fun translateText(resultText: String, menuname_us_tv: TextView) {       // DeepL을 이용한 번역(한국어 -> 외국어)
+        // translateText(번역할 텍스트, 원본 언어, 번역할 언어)
+        DeepLApiService().translateText(resultText, "ko", "en-US",
+            onComplete = { translatedText ->
+                runOnUiThread { menuname_us_tv.text = translatedText }    // 번역 성공
+            },
+            onError = { unTranslatedText ->
+                runOnUiThread { menuname_us_tv.text = unTranslatedText }    // 번역 실패
+            }
+        )
     }
 }

@@ -56,4 +56,7 @@ dependencies {
 
     // To recognize Korean script - ml kit 한국어 인식
     implementation 'com.google.mlkit:text-recognition-korean:16.0.0'
+
+    // DeepL 번역 사용
+    implementation("com.deepl.api:deepl-java:1.5.0")
 }

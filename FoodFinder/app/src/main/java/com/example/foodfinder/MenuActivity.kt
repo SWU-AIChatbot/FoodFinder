@@ -185,7 +185,6 @@ class MenuActivity : AppCompatActivity() {
 
     // 다음 액티비티 화면으로 전환
     private fun nextActivity(imageUri: Uri) {
-        Log.d(TAG, "실험4:")
         val intent = Intent(this, MenuInfoActivity::class.java)   // 다음 화면으로 이동하기 위한 인텐트 객체 생성
         intent.putExtra("image_uri", imageUri.toString())
         startActivity(intent)  // 화면 전환
