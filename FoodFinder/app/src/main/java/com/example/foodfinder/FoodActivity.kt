@@ -90,10 +90,13 @@ class FoodActivity : AppCompatActivity() {
 
                         Log.d(TAG, "Photo capture succeeded: $savedUri")
 
+                        // 촬영된 이미지 파일을 비트맵으로 디코딩
                         val bitmap = BitmapFactory.decodeFile(photoFile.absolutePath)
 
+                        // 이미지 분류 함수 호출
                         val resultText = classifyImage(bitmap)
 
+                        // FoodInfoActivity로 결과 전달 Intent 설정
                         val intent = Intent(this@FoodActivity, FoodInfoActivity::class.java)
                         intent.putExtra("image", photoFile.absolutePath)
                         intent.putExtra("resultText", resultText)
@@ -160,8 +163,6 @@ class FoodActivity : AppCompatActivity() {
         // 분류된 결과를 반환
         return resultText
     }
-
-
 
 
     // 카메라 시작 함수 호출
