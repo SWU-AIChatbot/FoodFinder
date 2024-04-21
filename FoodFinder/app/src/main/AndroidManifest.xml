@@ -36,6 +36,8 @@
             android:theme="@style/Base.Theme.AppCompat"/>
 
         <activity android:name=".MenuActivity"/>
+        <activity android:name=".FoodActivity"/>
+
         <activity android:name=".MenuInfoActivity"/>
         <activity android:name=".FoodInfoActivity"/>
 

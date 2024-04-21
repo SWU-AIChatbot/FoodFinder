@@ -1,5 +1,6 @@
 package com.example.foodfinder
 
+import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Matrix
@@ -23,6 +24,16 @@ class FoodInfoActivity : AppCompatActivity() {
         // FoodActivity로부터 전달받은 파일 경로와 분류 결과 텍스트 가져오기
         val photoFilePath = intent.getStringExtra("image")
         val resultText: String? = intent.getStringExtra("resultText")
+
+        val back_btn = findViewById<ImageView>(R.id.back_iv)
+
+        back_btn.setOnClickListener {
+            // FoodActivity로 이동하는 Intent 생성
+            val intent = Intent(this, MainActivity::class.java)
+            // Intent로 새 액티비티 시작
+            startActivity(intent)
+        }
+
 
         // 파일 경로가 비어 있지 않은 경우 이미지를 로드하고 회전시켜서 이미지뷰에 설정
         if (!photoFilePath.isNullOrEmpty()) {

@@ -17,6 +17,7 @@ import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import com.example.foodfinder.databinding.ActivityFoodBinding
 import com.example.foodfinder.databinding.ActivityMenuBinding
 import com.example.foodfinder.ml.Model
 import org.tensorflow.lite.DataType
@@ -32,7 +33,7 @@ class FoodActivity : AppCompatActivity() {
 
     private val imageSize = 224
 
-    private lateinit var viewBinding: ActivityMenuBinding
+    private lateinit var viewBinding: ActivityFoodBinding
 
     private var imageCapture: ImageCapture? = null
 
@@ -45,9 +46,8 @@ class FoodActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        viewBinding = ActivityMenuBinding.inflate(layoutInflater)
+        viewBinding = ActivityFoodBinding.inflate(layoutInflater)
         setContentView(viewBinding.root)
-        // setContentView(R.layout.activity_menu)
 
         // Request camera permissions - 카메라 권한 요청
         if (allPermissionsGranted()) {  // 권한 0
@@ -199,6 +199,8 @@ class FoodActivity : AppCompatActivity() {
 
         }, ContextCompat.getMainExecutor(this))
     }
+
+
 
     private fun allPermissionsGranted() = REQUIRED_PERMISSIONS.all {
         ContextCompat.checkSelfPermission(

@@ -33,19 +33,6 @@ class MainActivity : AppCompatActivity() {
             startActivity(intent)
         }
 
-        // menu_Iv를 findViewById로 초기화
-        menu_Iv = findViewById(R.id.menu_iv)
-        food_Iv = findViewById(R.id.food_iv)
-
-        menu_Iv.setOnClickListener {
-            val intent = Intent(this@MainActivity, MenuInfoActivity::class.java)
-            startActivity(intent)
-        }
-
-        food_Iv.setOnClickListener {
-            val intent = Intent(this@MainActivity, FoodInfoActivity::class.java)
-            startActivity(intent)
-        }
 
     }
 }
