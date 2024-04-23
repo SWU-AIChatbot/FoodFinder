@@ -3,7 +3,8 @@ package com.example.foodfinder
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.net.Uri
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
@@ -16,15 +17,23 @@ import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import com.example.foodfinder.databinding.ActivityFoodBinding
 import com.example.foodfinder.databinding.ActivityMenuBinding
-import com.theartofdev.edmodo.cropper.CropImage
+import com.example.foodfinder.ml.Model
+import org.tensorflow.lite.DataType
+import org.tensorflow.lite.support.image.TensorImage
+import org.tensorflow.lite.support.tensorbuffer.TensorBuffer
 import java.io.File
+import java.nio.ByteBuffer
+import java.nio.ByteOrder
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
-class MenuActivity : AppCompatActivity() {
+class FoodActivity : AppCompatActivity() {
 
-    private lateinit var viewBinding: ActivityMenuBinding
+    private val imageSize = 224
+
+    private lateinit var viewBinding: ActivityFoodBinding
 
     private var imageCapture: ImageCapture? = null
 
@@ -37,7 +46,7 @@ class MenuActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        viewBinding = ActivityMenuBinding.inflate(layoutInflater)
+        viewBinding = ActivityFoodBinding.inflate(layoutInflater)
         setContentView(viewBinding.root)
 
         // Request camera permissions - 카메라 권한 요청
@@ -48,7 +57,7 @@ class MenuActivity : AppCompatActivity() {
                 this, REQUIRED_PERMISSIONS, REQUEST_CODE_PERMISSIONS)
         }
 
-        // 이미지 임시 파일 생성 -> 캐시 생성(data/data/패키지/cache)
+        // 이미지 임시 파일 생성 -> 캐시 생성(data/data/패키지/cache) -> 실험중
         photoFile = File(applicationContext.cacheDir, "foodImage.jpg")
 
         // Set up the listeners for take photo and video capture buttons
@@ -59,18 +68,21 @@ class MenuActivity : AppCompatActivity() {
 
     // 사진 찍기 함수
     private fun takePhoto() {
+
         if(!photoClick) {       // 카메라 찍는 버튼을 여러번 연속 클릭하는 것을 방지하기 위해 if문 작성(photoClick 변수가 false일 때만 실행 이후 true로 변경됨)
             // Get a stable reference of the modifiable image capture use case
             val imageCapture = imageCapture ?: return
+
             // ImageCapture.OutputFileOptions는 새로 캡처한 이미지를 저장하기 위한 옵션
             // 저장 위치 및 메타데이터를 구성하는데 사용
             val outputOptions = ImageCapture.OutputFileOptions.Builder(photoFile).build()
+
             imageCapture.takePicture(           // 이미지 찍음
                 outputOptions,
                 ContextCompat.getMainExecutor(this),
                 object : ImageCapture.OnImageSavedCallback {
                     override fun onError(exc: ImageCaptureException) {
-                        Log.e(TAG, "Photo capture failed : ${exc.message}", exc)
+                        Log.e(TAG, "Photo capture failed: ${exc.message}", exc)
                     }
 
                     override fun onImageSaved(output: ImageCapture.OutputFileResults) {
@@ -78,8 +90,18 @@ class MenuActivity : AppCompatActivity() {
 
                         Log.d(TAG, "Photo capture succeeded: $savedUri")
 
-                        // 이미지 crop - 이미지가 성공적으로 찍혔으므로 크롭 액티비티를 시작
-                        startCrop(savedUri)
+                        // 촬영된 이미지 파일을 비트맵으로 디코딩
+                        val bitmap = BitmapFactory.decodeFile(photoFile.absolutePath)
+
+                        // 이미지 분류 함수 호출
+                        val resultText = classifyImage(bitmap)
+
+                        // FoodInfoActivity로 결과 전달 Intent 설정
+                        val intent = Intent(this@FoodActivity, FoodInfoActivity::class.java)
+                        intent.putExtra("image", photoFile.absolutePath)
+                        intent.putExtra("resultText", resultText)
+                        startActivity(intent)
+                        finish()
                     }
                 }
             )
@@ -87,6 +109,61 @@ class MenuActivity : AppCompatActivity() {
         }
         photoClick = true
     }
+
+    // 이미지 분류 함수
+    private fun classifyImage(image: Bitmap): String {
+        var resultText = ""
+        try {
+            // 이미지 리사이즈
+            val resizedBitmap = Bitmap.createScaledBitmap(image, imageSize, imageSize, true)
+
+            Log.d(TAG, "Resized image size: ${resizedBitmap.width} x ${resizedBitmap.height}")
+
+            // TensorFlow Lite 모델을 초기화하여 새로운 인스턴스를 가져옴
+            val model = Model.newInstance(applicationContext)
+
+            // 입력 이미지를 피쳐로 변환하기 위해 TensorImage 생성
+            val inputFeature0 = TensorImage(DataType.FLOAT32)
+            inputFeature0.load(resizedBitmap)
+
+            // 모델에 입력 이미지를 전달하여 결과를 가져옴
+            val outputs = model.process(inputFeature0.tensorBuffer)
+            val outputFeature0 = outputs.getOutputFeature0AsTensorBuffer()
+
+            // 결과로부터 가장 높은 확률의 클래스를 찾아냄
+            val confidences = outputFeature0.floatArray
+            var maxPos = 0
+            var maxConfidence = 0f
+            for (i in confidences.indices) {
+                if (confidences[i] > maxConfidence) {
+                    maxConfidence = confidences[i]
+                    maxPos = i
+                }
+            }
+
+            Log.d(TAG, "Max confidence: $maxConfidence, Max position: $maxPos")
+
+            // 각 클래스에 해당하는 음식 이름 배열
+            val classes = arrayOf("삼겹살", "불고기", "잡채", "물회", "육회", "짜장면", "비빔냉면", "물냉면",
+                "파전", "주꾸미볶음", "떡볶이", "족발", "순대", "추어탕", "삼계탕", "순두부찌개", "김치찌개", "간장게장",
+                "양념게장", "비빔밥", "김밥", "배추김치", "곱창전골", "약과", "김치볶음밥", "깍두기", "도토리묵", "꿀떡", "시금치나물",
+                "제육볶음", "된장찌개", "수정과", "파김치", "만두", "라면", "장조림", "계란찜", "식혜", "유부초밥", "깻잎짱아찌")
+            // 결과 텍스트를 해당 클래스의 음식 이름으로 설정
+            resultText = classes[maxPos]
+
+            // 모델 인스턴스를 닫음
+            model.close()
+        } catch (e: Exception) {
+            // 예외가 발생한 경우 에러 로그 출력
+            Log.e("classifyImage", "Error during image classification: ${e.message}")
+            e.printStackTrace()
+            // 예외가 발생한 경우 빈 문자열 반환
+            return ""
+        }
+        // 분류된 결과를 반환
+        return resultText
+    }
+
 
     // 카메라 시작 함수 호출
     private fun startCamera() {
@@ -123,6 +200,8 @@ class MenuActivity : AppCompatActivity() {
         }, ContextCompat.getMainExecutor(this))
     }
 
+
+
     private fun allPermissionsGranted() = REQUIRED_PERMISSIONS.all {
         ContextCompat.checkSelfPermission(
             baseContext, it) == PackageManager.PERMISSION_GRANTED
@@ -140,6 +219,7 @@ class MenuActivity : AppCompatActivity() {
         private val REQUIRED_PERMISSIONS =
             mutableListOf (
                 Manifest.permission.CAMERA
+                //, Manifest.permission.RECORD_AUDIO
             ).apply {
                 if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.P) {
                     add(Manifest.permission.WRITE_EXTERNAL_STORAGE)
@@ -161,31 +241,5 @@ class MenuActivity : AppCompatActivity() {
                 finish()
             }
         }
-    }
-
-    // 이미지 crop
-    private fun startCrop(imageUri: Uri) {
-        CropImage.activity(imageUri).start(this@MenuActivity)
-    }
-
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {   // 이미지 자르기 누른 후
-        super.onActivityResult(requestCode, resultCode, data)
-        if (requestCode == CropImage.CROP_IMAGE_ACTIVITY_REQUEST_CODE) {
-            val result: CropImage.ActivityResult = CropImage.getActivityResult(data)
-            if (resultCode == RESULT_OK) {
-                val resultUri: Uri = result.uri
-
-                // MenuInfo 화면으로 전환
-                nextActivity(resultUri)
-            }
-        }
-    }
-
-    // 다음 액티비티 화면으로 전환
-    private fun nextActivity(imageUri: Uri) {
-        val intent = Intent(this, MenuInfoActivity::class.java)   // 다음 화면으로 이동하기 위한 인텐트 객체 생성
-        intent.putExtra("image_uri", imageUri.toString())
-        startActivity(intent)  // 화면 전환
-        finish()
     }
 }

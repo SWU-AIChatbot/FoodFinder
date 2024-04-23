@@ -1,9 +1,12 @@
 package com.example.foodfinder
 
 import android.content.Context
+import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import android.util.Log
+import android.widget.EditText
+import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
@@ -11,8 +14,15 @@ import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.korean.KoreanTextRecognizerOptions
 import java.io.IOException
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import retrofit2.Retrofit
+import retrofit2.converter.gson.GsonConverterFactory
 
 class MenuInfoActivity : AppCompatActivity() {
+
     private lateinit var koreanText: String // 인식된 한국어 텍스트
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -24,12 +34,26 @@ class MenuInfoActivity : AppCompatActivity() {
 
         val imageUri: Uri
 
+        val back_btn = findViewById<ImageView>(R.id.back_iv)
+        
+        val checkBtn = findViewById<ImageView>(R.id.check_btn)
+        val usdTv = findViewById<TextView>(R.id.usd_tv)
+        val kwrEt = findViewById<EditText>(R.id.kwr_et)
+
+        val retrofit = Retrofit.Builder()
+            .baseUrl("https://api.freecurrencyapi.com/v1/")
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+
+        val exchangeRateApiService = retrofit.create(ExchangeRateApiService::class.java)
+
         if(intent.hasExtra("image_uri")) {      // intent로 받아온 uri가 있을 경우
             val imageUriString = intent.getStringExtra("image_uri")
             imageUri = Uri.parse(imageUriString)    // String -> Uri
 
             // 이미지 텍스트 인식
-            val ocrImage: InputImage? = imageFromPath(this, imageUri)   // 이미지 uri 사용하여 InputImage 객체 만들기
+            val ocrImage: InputImage? =
+                imageFromPath(this, imageUri)   // 이미지 uri 사용하여 InputImage 객체 만들기
             if (ocrImage != null) {
                 recognizeText(ocrImage) { recognizedResult ->   // 텍스트 인식
                     koreanText = recognizedResult    // 인식된 한국어 텍스트
@@ -40,22 +64,65 @@ class MenuInfoActivity : AppCompatActivity() {
                 }
             }
         }
-    }
+        checkBtn.setOnClickListener {
+            // kwr_et에 입력된 값을 가져옴
+            val kwrAmount = kwrEt.text.toString().toDoubleOrNull()
 
-    private fun imageFromPath(context: Context, uri: Uri): InputImage? {    // 파일 uri 사용하여 InputImage 객체 만들기
-        // [START image_from_path]
-        val image: InputImage
+            if (kwrAmount != null) {
 
-        try {
-            image = InputImage.fromFilePath(context, uri)
-            return image
-        } catch (e: IOException) {
-            e.printStackTrace()
-            return null
+                GlobalScope.launch(Dispatchers.IO) {
+                    try {
+                        val response = exchangeRateApiService.getLatestExchangeRates(
+                            "fca_live_UEh7ozfhJgsNKf9gpGgUGRxSdqEYQL1bEbDR66vA",
+                            "USD",
+                            "KRW"
+                        )
+                        val usdRate = response.data.USD ?: 0.0 // USD 환율을 가져옴
+
+                        val usdAmount = kwrAmount * usdRate
+
+                        // 계산된 환율을 usd_tv에 표시
+                        withContext(Dispatchers.Main) {
+                            usdTv.text = String.format("%.2f", usdAmount)
+                            Log.d("환율계산","usd -> ${usdTv.text}")
+
+
+                        }
+                    } catch (e: Exception) {
+                        withContext(Dispatchers.Main) {
+                            Toast.makeText(this@MenuInfoActivity, "Error occurred", Toast.LENGTH_SHORT)
+                                .show()
+                        }
+                        e.printStackTrace()
+                    }
+                }
+
+            } else {
+                // kwr_et에 유효한 숫자가 입력되지 않은 경우 사용자에게 메시지 표시
+                Toast.makeText(this, "Please enter a valid number", Toast.LENGTH_SHORT).show()
+            }
         }
-        // [END image_from_path]
+
+
+        back_btn.setOnClickListener {
+            // FoodActivity로 이동하는 Intent 생성
+            val intent = Intent(this, MainActivity::class.java)
+            // Intent로 새 액티비티 시작
+            startActivity(intent)
+        }
     }
 
+    private fun translateText(resultText: String, menuname_us_tv: TextView) {       // DeepL을 이용한 번역(한국어 -> 외국어)
+        // translateText(번역할 텍스트, 원본 언어, 번역할 언어)
+        DeepLApiService().translateText(resultText, "ko", "en-US",
+            onComplete = { translatedText ->
+                runOnUiThread { menuname_us_tv.text = translatedText }    // 번역 성공
+            },
+            onError = { unTranslatedText ->
+                runOnUiThread { menuname_us_tv.text = unTranslatedText }    // 번역 실패
+            }
+        )
+    }
     private fun recognizeText(image: InputImage, onComplete: (String) -> Unit) {        // 텍스트 인식
         // [START get_detector_default]
         // When using Korean script library - 한국어
@@ -76,15 +143,17 @@ class MenuInfoActivity : AppCompatActivity() {
         }
     }
 
-    private fun translateText(resultText: String, menuname_us_tv: TextView) {       // DeepL을 이용한 번역(한국어 -> 외국어)
-        // translateText(번역할 텍스트, 원본 언어, 번역할 언어)
-        DeepLApiService().translateText(resultText, "ko", "en-US",
-            onComplete = { translatedText ->
-                runOnUiThread { menuname_us_tv.text = translatedText }    // 번역 성공
-            },
-            onError = { unTranslatedText ->
-                runOnUiThread { menuname_us_tv.text = unTranslatedText }    // 번역 실패
-            }
-        )
+    private fun imageFromPath(context: Context, uri: Uri): InputImage? {    // 파일 uri 사용하여 InputImage 객체 만들기
+        // [START image_from_path]
+        val image: InputImage
+
+        try {
+            image = InputImage.fromFilePath(context, uri)
+            return image
+        } catch (e: IOException) {
+            e.printStackTrace()
+            return null
+        }
+        // [END image_from_path]
     }
 }
