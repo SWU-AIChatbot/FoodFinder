@@ -120,7 +120,7 @@
                     android:id="@+id/menuname_kr2_tv"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Jeyuk-bokkeum"
+                    android:text=""
                     android:textColor="@color/white"
                     android:textSize="25dp"
                     android:layout_marginTop="10dp"
@@ -204,18 +204,6 @@
                         android:layout_marginEnd="10dp">
 
 
-                        <TextView
-                            android:layout_width="50dp"
-                            android:layout_height="35dp"
-                            android:background="@drawable/itme_title_background"
-                            android:layout_gravity="center" />
-
-                        <ImageView
-                            android:id="@+id/check_btn"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_gravity="center"
-                            android:src="@drawable/check" />
                     </FrameLayout>
 
 

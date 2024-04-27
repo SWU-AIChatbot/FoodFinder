@@ -4,12 +4,15 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.text.Editable
+import android.text.TextWatcher
 import android.util.Log
 import android.widget.EditText
 import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.widget.addTextChangedListener
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.korean.KoreanTextRecognizerOptions
@@ -35,8 +38,7 @@ class MenuInfoActivity : AppCompatActivity() {
         val imageUri: Uri
 
         val back_btn = findViewById<ImageView>(R.id.back_iv)
-        
-        val checkBtn = findViewById<ImageView>(R.id.check_btn)
+
         val usdTv = findViewById<TextView>(R.id.usd_tv)
         val kwrEt = findViewById<EditText>(R.id.kwr_et)
 
@@ -64,44 +66,46 @@ class MenuInfoActivity : AppCompatActivity() {
                 }
             }
         }
-        checkBtn.setOnClickListener {
-            // kwr_et에 입력된 값을 가져옴
-            val kwrAmount = kwrEt.text.toString().toDoubleOrNull()
 
-            if (kwrAmount != null) {
+        //원화 입력 시 달러 자동 변환
+        kwrEt.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(p0: CharSequence?, p1: Int, p2: Int, p3: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
 
-                GlobalScope.launch(Dispatchers.IO) {
-                    try {
-                        val response = exchangeRateApiService.getLatestExchangeRates(
-                            "fca_live_UEh7ozfhJgsNKf9gpGgUGRxSdqEYQL1bEbDR66vA",
-                            "USD",
-                            "KRW"
-                        )
-                        val usdRate = response.data.USD ?: 0.0 // USD 환율을 가져옴
+            override fun afterTextChanged(s: Editable?) {
+                val kwrAmount = s.toString().toDoubleOrNull()
 
-                        val usdAmount = kwrAmount * usdRate
+                if (kwrAmount != null) {
+                    GlobalScope.launch(Dispatchers.IO) {
+                        try {
+                            val response = exchangeRateApiService.getLatestExchangeRates(
+                                "fca_live_UEh7ozfhJgsNKf9gpGgUGRxSdqEYQL1bEbDR66vA",
+                                "USD",
+                                "KRW"
+                            )
+                            val usdRate = response.data.USD ?: 0.0 // USD 환율을 가져옴
 
-                        // 계산된 환율을 usd_tv에 표시
-                        withContext(Dispatchers.Main) {
-                            usdTv.text = String.format("%.2f", usdAmount)
-                            Log.d("환율계산","usd -> ${usdTv.text}")
+                            val usdAmount = kwrAmount * usdRate
 
-
+                            // 계산된 환율을 usd_tv에 표시
+                            withContext(Dispatchers.Main) {
+                                usdTv.text = String.format("%.2f", usdAmount)
+                                Log.d("환율계산","usd -> ${usdTv.text}")
+                            }
+                        } catch (e: Exception) {
+                            withContext(Dispatchers.Main) {
+                                Toast.makeText(this@MenuInfoActivity, "오류가 발생했습니다", Toast.LENGTH_SHORT)
+                                    .show()
+                            }
+                            e.printStackTrace()
                         }
-                    } catch (e: Exception) {
-                        withContext(Dispatchers.Main) {
-                            Toast.makeText(this@MenuInfoActivity, "Error occurred", Toast.LENGTH_SHORT)
-                                .show()
-                        }
-                        e.printStackTrace()
                     }
+                } else {
+                    // kwr_et에 유효한 숫자가 입력되지 않은 경우 사용자에게 메시지 표시
+                    Toast.makeText(this@MenuInfoActivity, "유효한 숫자를 입력해주세요", Toast.LENGTH_SHORT).show()
                 }
-
-            } else {
-                // kwr_et에 유효한 숫자가 입력되지 않은 경우 사용자에게 메시지 표시
-                Toast.makeText(this, "Please enter a valid number", Toast.LENGTH_SHORT).show()
             }
-        }
+        })
 
 
         back_btn.setOnClickListener {
