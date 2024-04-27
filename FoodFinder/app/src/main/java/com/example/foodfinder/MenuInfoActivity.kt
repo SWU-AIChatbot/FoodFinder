@@ -32,8 +32,8 @@ class MenuInfoActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_menu_info)
 
-        val menuname_us_tv = findViewById<TextView>(R.id.menuname_us_tv)    // 번역 후 텍스트뷰(외국어 텍스트뷰)
-        val menuname_kr_tv = findViewById<TextView>(R.id.menuname_kr_tv)    // 번역 전 텍스트뷰(이미지 인식 후 한글 텍스트뷰)
+        val menunameUsTv = findViewById<TextView>(R.id.menuname_us_tv)    // 번역 후 텍스트뷰(외국어 텍스트뷰)
+        val menunameKrTv = findViewById<TextView>(R.id.menuname_kr_tv)    // 번역 전 텍스트뷰(이미지 인식 후 한글 텍스트뷰)
 
         val imageUri: Uri
 
@@ -59,10 +59,10 @@ class MenuInfoActivity : AppCompatActivity() {
             if (ocrImage != null) {
                 recognizeText(ocrImage) { recognizedResult ->   // 텍스트 인식
                     koreanText = recognizedResult    // 인식된 한국어 텍스트
-                    menuname_kr_tv.text = recognizedResult
+                    menunameKrTv.text = recognizedResult
                     Log.d("Translation", "Text recognition succeeded1: $recognizedResult")
 
-                    translateText(koreanText, menuname_us_tv)   // 번역
+                    translateText(koreanText, menunameUsTv)   // 번역
                 }
             }
         }
@@ -116,18 +116,21 @@ class MenuInfoActivity : AppCompatActivity() {
         }
     }
 
-    private fun translateText(resultText: String, menuname_us_tv: TextView) {       // DeepL을 이용한 번역(한국어 -> 외국어)
+    // DeepL을 이용한 번역(한국어 -> 외국어)
+    private fun translateText(resultText: String, menunameUsTv: TextView) {
         // translateText(번역할 텍스트, 원본 언어, 번역할 언어)
         DeepLApiService().translateText(resultText, "ko", "en-US",
             onComplete = { translatedText ->
-                runOnUiThread { menuname_us_tv.text = translatedText }    // 번역 성공
+                runOnUiThread { menunameUsTv.text = translatedText }    // 번역 성공
             },
             onError = { unTranslatedText ->
-                runOnUiThread { menuname_us_tv.text = unTranslatedText }    // 번역 실패
+                runOnUiThread { menunameUsTv.text = unTranslatedText }    // 번역 실패
             }
         )
     }
-    private fun recognizeText(image: InputImage, onComplete: (String) -> Unit) {        // 텍스트 인식
+
+    // 텍스트 인식
+    private fun recognizeText(image: InputImage, onComplete: (String) -> Unit) {
         // [START get_detector_default]
         // When using Korean script library - 한국어
         val recognizer = TextRecognition.getClient(KoreanTextRecognizerOptions.Builder().build())       // 한국어 라이
@@ -147,7 +150,8 @@ class MenuInfoActivity : AppCompatActivity() {
         }
     }
 
-    private fun imageFromPath(context: Context, uri: Uri): InputImage? {    // 파일 uri 사용하여 InputImage 객체 만들기
+    // 파일 uri 사용하여 InputImage 객체 만들기
+    private fun imageFromPath(context: Context, uri: Uri): InputImage? {
         // [START image_from_path]
         val image: InputImage
 
