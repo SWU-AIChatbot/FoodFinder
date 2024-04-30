@@ -31,7 +31,13 @@
             </intent-filter>
         </activity>
 
+        <activity
+            android:name="com.theartofdev.edmodo.cropper.CropImageActivity"
+            android:theme="@style/Base.Theme.AppCompat"/>
+
+        <activity android:name=".MenuActivity"/>
         <activity android:name=".FoodActivity"/>
+
         <activity android:name=".MenuInfoActivity"/>
         <activity android:name=".FoodInfoActivity"/>
 

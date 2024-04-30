@@ -17,7 +17,7 @@ import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import com.example.foodfinder.databinding.ActivityMenuBinding
+import com.example.foodfinder.databinding.ActivityFoodBinding
 import com.example.foodfinder.ml.Model
 import org.tensorflow.lite.DataType
 import org.tensorflow.lite.support.image.TensorImage
@@ -32,7 +32,7 @@ class FoodActivity : AppCompatActivity() {
 
     private val imageSize = 224
 
-    private lateinit var viewBinding: ActivityMenuBinding
+    private lateinit var viewBinding: ActivityFoodBinding
 
     private var imageCapture: ImageCapture? = null
 
@@ -45,9 +45,8 @@ class FoodActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        viewBinding = ActivityMenuBinding.inflate(layoutInflater)
+        viewBinding = ActivityFoodBinding.inflate(layoutInflater)
         setContentView(viewBinding.root)
-        // setContentView(R.layout.activity_menu)
 
         // Request camera permissions - 카메라 권한 요청
         if (allPermissionsGranted()) {  // 권한 0
@@ -122,12 +121,32 @@ class FoodActivity : AppCompatActivity() {
             // TensorFlow Lite 모델을 초기화하여 새로운 인스턴스를 가져옴
             val model = Model.newInstance(applicationContext)
 
-            // 입력 이미지를 피쳐로 변환하기 위해 TensorImage 생성
-            val inputFeature0 = TensorImage(DataType.FLOAT32)
-            inputFeature0.load(resizedBitmap)
+            // 입력 이미지의 픽셀 값을 ByteBuffer에 저장
+            val byteBuffer = ByteBuffer.allocateDirect(1 * imageSize * imageSize * 3 * 4) // 이미지 크기 * 3(RGB 채널) * 4(Byte)
+            byteBuffer.order(ByteOrder.nativeOrder())
+
+            // 입력 이미지의 픽셀 값을 int 배열로 저장
+            val intValues = IntArray(imageSize * imageSize)
+            resizedBitmap.getPixels(intValues, 0, resizedBitmap.width, 0, 0, resizedBitmap.width, resizedBitmap.height)
+
+            // 픽셀 값을 byteBuffer에 저장하여 입력 이미지를 TensorBuffer에 로드
+            var pixel = 0
+            for (i in 0 until imageSize) {
+                for (j in 0 until imageSize) {
+                    val value = intValues[pixel++]
+                    // RGB 채널 값을 정규화하여 byteBuffer에 저장
+                    byteBuffer.putFloat(((value shr 16) and 0xFF) * (1f / 255f)) // Red 채널
+                    byteBuffer.putFloat(((value shr 8) and 0xFF) * (1f / 255f))  // Green 채널
+                    byteBuffer.putFloat((value and 0xFF) * (1f / 255f))           // Blue 채널
+                }
+            }
+
+            // byteBuffer의 데이터를 TensorBuffer로 로드
+            val inputFeature0 = TensorBuffer.createFixedSize(intArrayOf(1, imageSize, imageSize, 3), DataType.FLOAT32)
+            inputFeature0.loadBuffer(byteBuffer)
 
             // 모델에 입력 이미지를 전달하여 결과를 가져옴
-            val outputs = model.process(inputFeature0.tensorBuffer)
+            val outputs = model.process(inputFeature0)
             val outputFeature0 = outputs.getOutputFeature0AsTensorBuffer()
 
             // 결과로부터 가장 높은 확률의 클래스를 찾아냄
@@ -165,6 +184,8 @@ class FoodActivity : AppCompatActivity() {
     }
 
 
+
+
     // 카메라 시작 함수 호출
     private fun startCamera() {
         val cameraProviderFuture = ProcessCameraProvider.getInstance(this)
@@ -199,6 +220,8 @@ class FoodActivity : AppCompatActivity() {
 
         }, ContextCompat.getMainExecutor(this))
     }
+
+
 
     private fun allPermissionsGranted() = REQUIRED_PERMISSIONS.all {
         ContextCompat.checkSelfPermission(

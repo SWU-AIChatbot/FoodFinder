@@ -6,6 +6,11 @@ import android.os.Bundle
 import android.widget.ImageView
 
 class MainActivity : AppCompatActivity() {
+
+    private lateinit var menu_Iv: ImageView
+    private lateinit var food_Iv: ImageView
+
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -20,5 +25,14 @@ class MainActivity : AppCompatActivity() {
             // Intent로 새 액티비티 시작
             startActivity(intent)
         }
+
+        val menuIv = findViewById<ImageView>(R.id.menu_iv)
+
+        menuIv.setOnClickListener {   // MenuActiviy로 전환
+            val intent = Intent(this, MenuActivity::class.java)
+            startActivity(intent)
+        }
+
+
     }
 }
