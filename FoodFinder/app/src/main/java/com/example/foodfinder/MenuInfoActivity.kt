@@ -12,15 +12,18 @@ import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.widget.addTextChangedListener
+import com.google.gson.Gson
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.korean.KoreanTextRecognizerOptions
+import kotlinx.coroutines.CoroutineScope
 import java.io.IOException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import okhttp3.Interceptor
+import okhttp3.OkHttpClient
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 
@@ -49,6 +52,9 @@ class MenuInfoActivity : AppCompatActivity() {
 
         val exchangeRateApiService = retrofit.create(ExchangeRateApiService::class.java)
 
+
+
+
         if(intent.hasExtra("image_uri")) {      // intent로 받아온 uri가 있을 경우
             val imageUriString = intent.getStringExtra("image_uri")
             imageUri = Uri.parse(imageUriString)    // String -> Uri
@@ -63,6 +69,9 @@ class MenuInfoActivity : AppCompatActivity() {
                     Log.d("Translation", "Text recognition succeeded1: $recognizedResult")
 
                     translateText(koreanText, menuname_us_tv)   // 번역
+                    CoroutineScope(Dispatchers.Main).launch {
+                        translateToRomanized(koreanText)
+                    }
                 }
             }
         }
@@ -108,6 +117,7 @@ class MenuInfoActivity : AppCompatActivity() {
         })
 
 
+
         back_btn.setOnClickListener {
             // FoodActivity로 이동하는 Intent 생성
             val intent = Intent(this, MainActivity::class.java)
@@ -115,6 +125,32 @@ class MenuInfoActivity : AppCompatActivity() {
             startActivity(intent)
         }
     }
+
+    private suspend fun translateToRomanized(koreanText: String) {
+        val menuname_kr2_tv = findViewById<TextView>(R.id.menuname_kr2_tv)
+
+        val apiService = NaverApiService.create()
+
+        try {
+            val response = withContext(Dispatchers.IO) {
+                apiService.getRomanization(koreanText)
+            }
+            Log.d("로마자", "$koreanText")
+            if (response.aResult.isNotEmpty()) {
+                val romanizedName = response.aResult[0].aItems[0].name
+                withContext(Dispatchers.Main) {
+                    menuname_kr2_tv.text = romanizedName
+                }
+                Log.d("로마자", "$romanizedName")
+            } else {
+                Log.e("로마자", "No result found")
+            }
+        } catch (e: Exception) {
+            Log.e("로마자", "Failed to get Romanized name", e)
+        }
+    }
+
+
 
     private fun translateText(resultText: String, menuname_us_tv: TextView) {       // DeepL을 이용한 번역(한국어 -> 외국어)
         // translateText(번역할 텍스트, 원본 언어, 번역할 언어)

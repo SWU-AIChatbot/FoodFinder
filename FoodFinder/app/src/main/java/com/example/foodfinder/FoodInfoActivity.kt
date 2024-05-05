@@ -30,6 +30,14 @@ class FoodInfoActivity : AppCompatActivity() {
         val usdTv = findViewById<TextView>(R.id.usd_tv)
         val kwrEt = findViewById<EditText>(R.id.kwr_et)
 
+        val retrofitNaver = Retrofit.Builder()
+            .baseUrl("https://naveropenapi.apigw.ntruss.com/")
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+
+        val serviceNaver = retrofitNaver.create(NaverApiService::class.java)
+
+
         val retrofit = Retrofit.Builder()
             .baseUrl("https://api.freecurrencyapi.com/v1/")
             .addConverterFactory(GsonConverterFactory.create())
@@ -53,7 +61,7 @@ class FoodInfoActivity : AppCompatActivity() {
             // Intent로 새 액티비티 시작
             startActivity(intent)
         }
-//원화 입력 시 달러 자동 변환
+        //원화 입력 시 달러 자동 변환
         kwrEt.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(p0: CharSequence?, p1: Int, p2: Int, p3: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
