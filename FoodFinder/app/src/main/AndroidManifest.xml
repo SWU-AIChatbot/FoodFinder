@@ -41,6 +41,8 @@
         <activity android:name=".MenuInfoActivity"/>
         <activity android:name=".FoodInfoActivity"/>
 
+        <activity android:name=".NewActivity"/>
+
     </application>
 
 

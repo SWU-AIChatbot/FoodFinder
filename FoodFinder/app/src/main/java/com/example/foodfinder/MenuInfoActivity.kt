@@ -45,6 +45,8 @@ class MenuInfoActivity : AppCompatActivity() {
         val usdTv = findViewById<TextView>(R.id.usd_tv)
         val kwrEt = findViewById<EditText>(R.id.kwr_et)
 
+        val searchIv = findViewById<ImageView>(R.id.img_search_iv)
+
         val retrofit = Retrofit.Builder()
             .baseUrl("https://api.freecurrencyapi.com/v1/")
             .addConverterFactory(GsonConverterFactory.create())
@@ -71,6 +73,15 @@ class MenuInfoActivity : AppCompatActivity() {
                     translateText(koreanText, menuname_us_tv)   // 번역
                     CoroutineScope(Dispatchers.Main).launch {
                         translateToRomanized(koreanText)
+                    }
+
+                    // 검색엔진 이미지
+                    searchIv.setOnClickListener {
+                        val keyword = koreanText
+                        val intent = Intent(this, NewActivity::class.java).apply {
+                            putExtra("keyword", keyword)
+                        }
+                        startActivity(intent)
                     }
                 }
             }
@@ -136,6 +147,9 @@ class MenuInfoActivity : AppCompatActivity() {
                 apiService.getRomanization(koreanText)
             }
             Log.d("로마자", "$koreanText")
+            Log.d("로마자", "Response: $response") // 추가한 로그
+
+
             if (response.aResult.isNotEmpty()) {
                 val romanizedName = response.aResult[0].aItems[0].name
                 withContext(Dispatchers.Main) {
