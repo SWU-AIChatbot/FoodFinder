@@ -4,20 +4,26 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.text.Editable
+import android.text.TextWatcher
 import android.util.Log
 import android.widget.EditText
 import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import com.google.gson.Gson
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.korean.KoreanTextRecognizerOptions
+import kotlinx.coroutines.CoroutineScope
 import java.io.IOException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import okhttp3.Interceptor
+import okhttp3.OkHttpClient
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 
@@ -35,10 +41,11 @@ class MenuInfoActivity : AppCompatActivity() {
         val imageUri: Uri
 
         val back_btn = findViewById<ImageView>(R.id.back_iv)
-        
-        val checkBtn = findViewById<ImageView>(R.id.check_btn)
+
         val usdTv = findViewById<TextView>(R.id.usd_tv)
         val kwrEt = findViewById<EditText>(R.id.kwr_et)
+
+        val searchIv = findViewById<ImageView>(R.id.img_search_iv)
 
         val retrofit = Retrofit.Builder()
             .baseUrl("https://api.freecurrencyapi.com/v1/")
@@ -46,6 +53,9 @@ class MenuInfoActivity : AppCompatActivity() {
             .build()
 
         val exchangeRateApiService = retrofit.create(ExchangeRateApiService::class.java)
+
+
+
 
         if(intent.hasExtra("image_uri")) {      // intent로 받아온 uri가 있을 경우
             val imageUriString = intent.getStringExtra("image_uri")
@@ -61,47 +71,62 @@ class MenuInfoActivity : AppCompatActivity() {
                     Log.d("Translation", "Text recognition succeeded1: $recognizedResult")
 
                     translateText(koreanText, menuname_us_tv)   // 번역
-                }
-            }
-        }
-        checkBtn.setOnClickListener {
-            // kwr_et에 입력된 값을 가져옴
-            val kwrAmount = kwrEt.text.toString().toDoubleOrNull()
+                    CoroutineScope(Dispatchers.Main).launch {
+                        translateToRomanized(koreanText)
+                    }
 
-            if (kwrAmount != null) {
-
-                GlobalScope.launch(Dispatchers.IO) {
-                    try {
-                        val response = exchangeRateApiService.getLatestExchangeRates(
-                            "fca_live_UEh7ozfhJgsNKf9gpGgUGRxSdqEYQL1bEbDR66vA",
-                            "USD",
-                            "KRW"
-                        )
-                        val usdRate = response.data.USD ?: 0.0 // USD 환율을 가져옴
-
-                        val usdAmount = kwrAmount * usdRate
-
-                        // 계산된 환율을 usd_tv에 표시
-                        withContext(Dispatchers.Main) {
-                            usdTv.text = String.format("%.2f", usdAmount)
-                            Log.d("환율계산","usd -> ${usdTv.text}")
-
-
+                    // 검색엔진 이미지
+                    searchIv.setOnClickListener {
+                        val keyword = koreanText
+                        val intent = Intent(this, NewActivity::class.java).apply {
+                            putExtra("keyword", keyword)
                         }
-                    } catch (e: Exception) {
-                        withContext(Dispatchers.Main) {
-                            Toast.makeText(this@MenuInfoActivity, "Error occurred", Toast.LENGTH_SHORT)
-                                .show()
-                        }
-                        e.printStackTrace()
+                        startActivity(intent)
                     }
                 }
-
-            } else {
-                // kwr_et에 유효한 숫자가 입력되지 않은 경우 사용자에게 메시지 표시
-                Toast.makeText(this, "Please enter a valid number", Toast.LENGTH_SHORT).show()
             }
         }
+
+        //원화 입력 시 달러 자동 변환
+        kwrEt.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(p0: CharSequence?, p1: Int, p2: Int, p3: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+
+            override fun afterTextChanged(s: Editable?) {
+                val kwrAmount = s.toString().toDoubleOrNull()
+
+                if (kwrAmount != null) {
+                    GlobalScope.launch(Dispatchers.IO) {
+                        try {
+                            val response = exchangeRateApiService.getLatestExchangeRates(
+                                "fca_live_UEh7ozfhJgsNKf9gpGgUGRxSdqEYQL1bEbDR66vA",
+                                "USD",
+                                "KRW"
+                            )
+                            val usdRate = response.data.USD ?: 0.0 // USD 환율을 가져옴
+
+                            val usdAmount = kwrAmount * usdRate
+
+                            // 계산된 환율을 usd_tv에 표시
+                            withContext(Dispatchers.Main) {
+                                usdTv.text = String.format("%.2f", usdAmount)
+                                Log.d("환율계산","usd -> ${usdTv.text}")
+                            }
+                        } catch (e: Exception) {
+                            withContext(Dispatchers.Main) {
+                                Toast.makeText(this@MenuInfoActivity, "오류가 발생했습니다", Toast.LENGTH_SHORT)
+                                    .show()
+                            }
+                            e.printStackTrace()
+                        }
+                    }
+                } else {
+                    // kwr_et에 유효한 숫자가 입력되지 않은 경우 사용자에게 메시지 표시
+                    Toast.makeText(this@MenuInfoActivity, "유효한 숫자를 입력해주세요", Toast.LENGTH_SHORT).show()
+                }
+            }
+        })
+
 
 
         back_btn.setOnClickListener {
@@ -111,6 +136,35 @@ class MenuInfoActivity : AppCompatActivity() {
             startActivity(intent)
         }
     }
+
+    private suspend fun translateToRomanized(koreanText: String) {
+        val menuname_kr2_tv = findViewById<TextView>(R.id.menuname_kr2_tv)
+
+        val apiService = NaverApiService.create()
+
+        try {
+            val response = withContext(Dispatchers.IO) {
+                apiService.getRomanization(koreanText)
+            }
+            Log.d("로마자", "$koreanText")
+            Log.d("로마자", "Response: $response") // 추가한 로그
+
+
+            if (response.aResult.isNotEmpty()) {
+                val romanizedName = response.aResult[0].aItems[0].name
+                withContext(Dispatchers.Main) {
+                    menuname_kr2_tv.text = romanizedName
+                }
+                Log.d("로마자", "$romanizedName")
+            } else {
+                Log.e("로마자", "No result found")
+            }
+        } catch (e: Exception) {
+            Log.e("로마자", "Failed to get Romanized name", e)
+        }
+    }
+
+
 
     private fun translateText(resultText: String, menuname_us_tv: TextView) {       // DeepL을 이용한 번역(한국어 -> 외국어)
         // translateText(번역할 텍스트, 원본 언어, 번역할 언어)

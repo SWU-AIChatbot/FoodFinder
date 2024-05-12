@@ -6,16 +6,44 @@ import android.graphics.BitmapFactory
 import android.graphics.Matrix
 import android.media.ExifInterface
 import android.os.Bundle
+import android.text.Editable
+import android.text.TextWatcher
+import android.util.Log
+import android.widget.EditText
 import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import retrofit2.Retrofit
+import retrofit2.converter.gson.GsonConverterFactory
 import java.io.File
 
 class FoodInfoActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_food_info)
+
+        val usdTv = findViewById<TextView>(R.id.usd_tv)
+        val kwrEt = findViewById<EditText>(R.id.kwr_et)
+
+        val retrofitNaver = Retrofit.Builder()
+            .baseUrl("https://naveropenapi.apigw.ntruss.com/")
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+
+        val serviceNaver = retrofitNaver.create(NaverApiService::class.java)
+
+
+        val retrofit = Retrofit.Builder()
+            .baseUrl("https://api.freecurrencyapi.com/v1/")
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+
+        val exchangeRateApiService = retrofit.create(ExchangeRateApiService::class.java)
 
         // 이미지뷰, 텍스트뷰 초기화
         val imageView: ImageView = findViewById(R.id.menu_img_iv)
@@ -33,6 +61,45 @@ class FoodInfoActivity : AppCompatActivity() {
             // Intent로 새 액티비티 시작
             startActivity(intent)
         }
+        //원화 입력 시 달러 자동 변환
+        kwrEt.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(p0: CharSequence?, p1: Int, p2: Int, p3: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+
+            override fun afterTextChanged(s: Editable?) {
+                val kwrAmount = s.toString().toDoubleOrNull()
+
+                if (kwrAmount != null) {
+                    GlobalScope.launch(Dispatchers.IO) {
+                        try {
+                            val response = exchangeRateApiService.getLatestExchangeRates(
+                                "fca_live_UEh7ozfhJgsNKf9gpGgUGRxSdqEYQL1bEbDR66vA",
+                                "USD",
+                                "KRW"
+                            )
+                            val usdRate = response.data.USD ?: 0.0 // USD 환율을 가져옴
+
+                            val usdAmount = kwrAmount * usdRate
+
+                            // 계산된 환율을 usd_tv에 표시
+                            withContext(Dispatchers.Main) {
+                                usdTv.text = String.format("%.2f", usdAmount)
+                                Log.d("환율계산","usd -> ${usdTv.text}")
+                            }
+                        } catch (e: Exception) {
+                            withContext(Dispatchers.Main) {
+                                Toast.makeText(this@FoodInfoActivity, "오류가 발생했습니다", Toast.LENGTH_SHORT)
+                                    .show()
+                            }
+                            e.printStackTrace()
+                        }
+                    }
+                } else {
+                    // kwr_et에 유효한 숫자가 입력되지 않은 경우 사용자에게 메시지 표시
+                    Toast.makeText(this@FoodInfoActivity, "유효한 숫자를 입력해주세요", Toast.LENGTH_SHORT).show()
+                }
+            }
+        })
 
 
         // 파일 경로가 비어 있지 않은 경우 이미지를 로드하고 회전시켜서 이미지뷰에 설정
