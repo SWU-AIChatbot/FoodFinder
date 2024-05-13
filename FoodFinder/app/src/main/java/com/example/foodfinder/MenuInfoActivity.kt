@@ -56,8 +56,6 @@ class MenuInfoActivity : AppCompatActivity() {
         val exchangeRateApiService = retrofit.create(ExchangeRateApiService::class.java)
 
 
-
-
         if(intent.hasExtra("image_uri")) {      // intent로 받아온 uri가 있을 경우
             val imageUriString = intent.getStringExtra("image_uri")
             imageUri = Uri.parse(imageUriString)    // String -> Uri
@@ -79,10 +77,11 @@ class MenuInfoActivity : AppCompatActivity() {
                     // 검색엔진 이미지
                     searchIv.setOnClickListener {
                         val keyword = koreanText
-                        val intent = Intent(this, NewActivity::class.java).apply {
-                            putExtra("keyword", keyword)
-                        }
-                        startActivity(intent)
+                        val newActivity = NewActivity()
+                        val bundle = Bundle()
+                        bundle.putString("keyword", keyword)
+                        newActivity.arguments = bundle
+                        newActivity.show(supportFragmentManager, "NewActivity")
                     }
                 }
             }
