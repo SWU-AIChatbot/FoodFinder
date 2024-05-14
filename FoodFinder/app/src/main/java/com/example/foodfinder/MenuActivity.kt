@@ -3,6 +3,7 @@ package com.example.foodfinder
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -78,8 +79,11 @@ class MenuActivity : AppCompatActivity() {
 
                         Log.d(TAG, "Photo capture succeeded: $savedUri")
 
+                        // MenuRecognition 화면으로 전환 (이미지 파일 경로를 넘김)
+                        nextActivity(photoFile.absolutePath)
+
                         // 이미지 crop - 이미지가 성공적으로 찍혔으므로 크롭 액티비티를 시작
-                        startCrop(savedUri)
+                        // startCrop(savedUri)
                     }
                 }
             )
@@ -176,15 +180,15 @@ class MenuActivity : AppCompatActivity() {
                 val resultUri: Uri = result.uri
 
                 // MenuInfo 화면으로 전환
-                nextActivity(resultUri)
+                //nextActivity(resultUri)
             }
         }
     }
 
-    // 다음 액티비티 화면으로 전환
-    private fun nextActivity(imageUri: Uri) {
-        val intent = Intent(this, MenuInfoActivity::class.java)   // 다음 화면으로 이동하기 위한 인텐트 객체 생성
-        intent.putExtra("image_uri", imageUri.toString())
+    // MenuRecognition 화면으로 전환
+    private fun nextActivity(imagePath: String) {
+        val intent = Intent(this, MenuRecognitionActivity::class.java)   // 다음 화면으로 이동하기 위한 인텐트 객체 생성
+        intent.putExtra("imagePath", imagePath)
         startActivity(intent)  // 화면 전환
         finish()
     }
