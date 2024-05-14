@@ -7,20 +7,24 @@ import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
 import android.util.Log
+import android.util.TypedValue
 import android.widget.EditText
 import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.widget.addTextChangedListener
+import com.google.gson.Gson
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.korean.KoreanTextRecognizerOptions
+import kotlinx.coroutines.CoroutineScope
 import java.io.IOException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import okhttp3.Interceptor
+import okhttp3.OkHttpClient
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 
@@ -32,8 +36,8 @@ class MenuInfoActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_menu_info)
 
-        val menunameUsTv = findViewById<TextView>(R.id.menuname_us_tv)    // 번역 후 텍스트뷰(외국어 텍스트뷰)
-        val menunameKrTv = findViewById<TextView>(R.id.menuname_kr_tv)    // 번역 전 텍스트뷰(이미지 인식 후 한글 텍스트뷰)
+        val menuname_us_tv = findViewById<TextView>(R.id.menuname_us_tv)    // 번역 후 텍스트뷰(외국어 텍스트뷰)
+        val menuname_kr_tv = findViewById<TextView>(R.id.menuname_kr_tv)    // 번역 전 텍스트뷰(이미지 인식 후 한글 텍스트뷰)
 
         val imageUri: Uri
 
@@ -42,12 +46,15 @@ class MenuInfoActivity : AppCompatActivity() {
         val usdTv = findViewById<TextView>(R.id.usd_tv)
         val kwrEt = findViewById<EditText>(R.id.kwr_et)
 
+        val searchIv = findViewById<ImageView>(R.id.img_search_iv)
+
         val retrofit = Retrofit.Builder()
             .baseUrl("https://api.freecurrencyapi.com/v1/")
             .addConverterFactory(GsonConverterFactory.create())
             .build()
 
         val exchangeRateApiService = retrofit.create(ExchangeRateApiService::class.java)
+
 
         if(intent.hasExtra("image_uri")) {      // intent로 받아온 uri가 있을 경우
             val imageUriString = intent.getStringExtra("image_uri")
@@ -59,10 +66,23 @@ class MenuInfoActivity : AppCompatActivity() {
             if (ocrImage != null) {
                 recognizeText(ocrImage) { recognizedResult ->   // 텍스트 인식
                     koreanText = recognizedResult    // 인식된 한국어 텍스트
-                    menunameKrTv.text = recognizedResult
+                    menuname_kr_tv.text = recognizedResult
                     Log.d("Translation", "Text recognition succeeded1: $recognizedResult")
 
-                    translateText(koreanText, menunameUsTv)   // 번역
+                    translateText(koreanText, menuname_us_tv)   // 번역
+                    CoroutineScope(Dispatchers.Main).launch {
+                        translateToRomanized(koreanText)
+                    }
+
+                    // 검색엔진 이미지
+                    searchIv.setOnClickListener {
+                        val keyword = koreanText
+                        val newActivity = NewActivity()
+                        val bundle = Bundle()
+                        bundle.putString("keyword", keyword)
+                        newActivity.arguments = bundle
+                        newActivity.show(supportFragmentManager, "NewActivity")
+                    }
                 }
             }
         }
@@ -108,6 +128,7 @@ class MenuInfoActivity : AppCompatActivity() {
         })
 
 
+
         back_btn.setOnClickListener {
             // FoodActivity로 이동하는 Intent 생성
             val intent = Intent(this, MainActivity::class.java)
@@ -116,21 +137,49 @@ class MenuInfoActivity : AppCompatActivity() {
         }
     }
 
-    // DeepL을 이용한 번역(한국어 -> 외국어)
-    private fun translateText(resultText: String, menunameUsTv: TextView) {
+    private suspend fun translateToRomanized(koreanText: String) {
+        val menuname_kr2_tv = findViewById<TextView>(R.id.menuname_kr2_tv)
+
+        val apiService = NaverApiService.create()
+
+        try {
+            val response = withContext(Dispatchers.IO) {
+                apiService.getRomanization(koreanText)
+            }
+            Log.d("로마자", "$koreanText")
+            Log.d("로마자", "Response: $response") // 추가한 로그
+
+
+            if (response.aResult.isNotEmpty()) {
+                val romanizedName = response.aResult[0].aItems[0].name
+                withContext(Dispatchers.Main) {
+                    menuname_kr2_tv.text = romanizedName
+                }
+                Log.d("로마자", "$romanizedName")
+            } else {
+                Log.e("로마자", "No result found")
+            }
+        } catch (e: Exception) {
+            Log.e("로마자", "Failed to get Romanized name", e)
+        }
+    }
+
+
+
+    private fun translateText(resultText: String, menuname_us_tv: TextView) {       // DeepL을 이용한 번역(한국어 -> 외국어)
         // translateText(번역할 텍스트, 원본 언어, 번역할 언어)
         DeepLApiService().translateText(resultText, "ko", "en-US",
             onComplete = { translatedText ->
-                runOnUiThread { menunameUsTv.text = translatedText }    // 번역 성공
+                runOnUiThread { menuname_us_tv.text = translatedText }    // 번역 성공
+                adjustTextSize(menuname_us_tv, translatedText) // 번역된 텍스트의 크기 조정
             },
             onError = { unTranslatedText ->
-                runOnUiThread { menunameUsTv.text = unTranslatedText }    // 번역 실패
+                runOnUiThread { menuname_us_tv.text = unTranslatedText }    // 번역 실패
+                adjustTextSize(menuname_us_tv, unTranslatedText) // 번역되지 않은 텍스트의 크기 조정
             }
         )
     }
-
-    // 텍스트 인식
-    private fun recognizeText(image: InputImage, onComplete: (String) -> Unit) {
+    private fun recognizeText(image: InputImage, onComplete: (String) -> Unit) {        // 텍스트 인식
         // [START get_detector_default]
         // When using Korean script library - 한국어
         val recognizer = TextRecognition.getClient(KoreanTextRecognizerOptions.Builder().build())       // 한국어 라이
@@ -150,8 +199,7 @@ class MenuInfoActivity : AppCompatActivity() {
         }
     }
 
-    // 파일 uri 사용하여 InputImage 객체 만들기
-    private fun imageFromPath(context: Context, uri: Uri): InputImage? {
+    private fun imageFromPath(context: Context, uri: Uri): InputImage? {    // 파일 uri 사용하여 InputImage 객체 만들기
         // [START image_from_path]
         val image: InputImage
 
@@ -164,4 +212,23 @@ class MenuInfoActivity : AppCompatActivity() {
         }
         // [END image_from_path]
     }
+
+    // 글자 크기
+    private fun adjustTextSize(textView: TextView, text: String) {
+        val textWidth = textView.paint.measureText(text) // 텍스트의 폭 측정
+        val textViewWidth = textView.width - textView.paddingLeft - textView.paddingRight
+        val textViewHeight = textView.height - textView.paddingTop - textView.paddingBottom
+
+        val textSize = textView.textSize // 현재 텍스트 크기
+        val newTextSize = if (textWidth > textViewWidth || text.lines().size > 1) {
+            // 텍스트가 너무 길거나 여러 줄인 경우 텍스트 크기 조정
+            (textSize * textViewWidth / textWidth).coerceAtMost(textViewHeight.toFloat()) // 더 작은 값으로 크기 조정
+        } else {
+            // 텍스트가 적절한 크기인 경우 현재 크기 유지
+            textSize
+        }
+
+        textView.setTextSize(TypedValue.COMPLEX_UNIT_PX, newTextSize)
+    }
+
 }
