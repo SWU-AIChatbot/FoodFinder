@@ -34,7 +34,7 @@
                 android:id="@+id/menuname_us_tv"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Stir-fried spicy pork"
+                android:text="Translating Text..."
                 android:textColor="@color/white"
                 android:textSize="28dp"
                 android:textStyle="bold"
@@ -89,7 +89,7 @@
                             android:id="@+id/menuname_kr_tv"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="제육볶음"
+                            android:text="Recognizing Text..."
                             android:textColor="@color/white"
                             android:textSize="25dp"
                             android:textStyle="bold"
@@ -120,7 +120,7 @@
                     android:id="@+id/menuname_kr2_tv"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Jeyuk-bokkeum"
+                    android:text=""
                     android:textColor="@color/white"
                     android:textSize="25dp"
                     android:layout_marginTop="10dp"
@@ -203,19 +203,6 @@
                         android:layout_gravity="center"
                         android:layout_marginEnd="10dp">
 
-
-                        <TextView
-                            android:layout_width="50dp"
-                            android:layout_height="35dp"
-                            android:background="@drawable/itme_title_background"
-                            android:layout_gravity="center" />
-
-                        <ImageView
-                            android:id="@+id/check_iv"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:src="@drawable/check"
-                            android:layout_gravity="center"/>
                     </FrameLayout>
 
 

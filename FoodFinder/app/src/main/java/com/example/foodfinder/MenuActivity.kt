@@ -39,7 +39,6 @@ class MenuActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         viewBinding = ActivityMenuBinding.inflate(layoutInflater)
         setContentView(viewBinding.root)
-        // setContentView(R.layout.activity_menu)
 
         // Request camera permissions - 카메라 권한 요청
         if (allPermissionsGranted()) {  // 권한 0
@@ -141,7 +140,6 @@ class MenuActivity : AppCompatActivity() {
         private val REQUIRED_PERMISSIONS =
             mutableListOf (
                 Manifest.permission.CAMERA
-                //, Manifest.permission.RECORD_AUDIO
             ).apply {
                 if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.P) {
                     add(Manifest.permission.WRITE_EXTERNAL_STORAGE)
@@ -185,7 +183,6 @@ class MenuActivity : AppCompatActivity() {
 
     // 다음 액티비티 화면으로 전환
     private fun nextActivity(imageUri: Uri) {
-        Log.d(TAG, "실험4:")
         val intent = Intent(this, MenuInfoActivity::class.java)   // 다음 화면으로 이동하기 위한 인텐트 객체 생성
         intent.putExtra("image_uri", imageUri.toString())
         startActivity(intent)  // 화면 전환

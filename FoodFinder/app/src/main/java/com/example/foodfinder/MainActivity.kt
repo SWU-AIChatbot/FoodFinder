@@ -3,13 +3,17 @@ package com.example.foodfinder
 import android.content.Intent
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.util.Log
+import android.widget.EditText
 import android.widget.ImageView
-
+import android.widget.TextView
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import retrofit2.Retrofit
+import retrofit2.converter.gson.GsonConverterFactory
+import retrofit2.Response
 class MainActivity : AppCompatActivity() {
-
-    private lateinit var menu_Iv: ImageView
-    private lateinit var food_Iv: ImageView
-
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -33,19 +37,6 @@ class MainActivity : AppCompatActivity() {
             startActivity(intent)
         }
 
-        // menu_Iv를 findViewById로 초기화
-        menu_Iv = findViewById(R.id.menu_iv)
-        food_Iv = findViewById(R.id.food_iv)
-
-        menu_Iv.setOnClickListener {
-            val intent = Intent(this@MainActivity, MenuInfoActivity::class.java)
-            startActivity(intent)
-        }
-
-        food_Iv.setOnClickListener {
-            val intent = Intent(this@MainActivity, FoodInfoActivity::class.java)
-            startActivity(intent)
-        }
 
     }
 }
