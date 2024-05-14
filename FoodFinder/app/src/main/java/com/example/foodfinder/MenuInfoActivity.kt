@@ -7,6 +7,7 @@ import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
 import android.util.Log
+import android.util.TypedValue
 import android.widget.EditText
 import android.widget.ImageView
 import android.widget.TextView
@@ -55,8 +56,6 @@ class MenuInfoActivity : AppCompatActivity() {
         val exchangeRateApiService = retrofit.create(ExchangeRateApiService::class.java)
 
 
-
-
         if(intent.hasExtra("image_uri")) {      // intent로 받아온 uri가 있을 경우
             val imageUriString = intent.getStringExtra("image_uri")
             imageUri = Uri.parse(imageUriString)    // String -> Uri
@@ -78,10 +77,11 @@ class MenuInfoActivity : AppCompatActivity() {
                     // 검색엔진 이미지
                     searchIv.setOnClickListener {
                         val keyword = koreanText
-                        val intent = Intent(this, NewActivity::class.java).apply {
-                            putExtra("keyword", keyword)
-                        }
-                        startActivity(intent)
+                        val newActivity = NewActivity()
+                        val bundle = Bundle()
+                        bundle.putString("keyword", keyword)
+                        newActivity.arguments = bundle
+                        newActivity.show(supportFragmentManager, "NewActivity")
                     }
                 }
             }
@@ -171,9 +171,11 @@ class MenuInfoActivity : AppCompatActivity() {
         DeepLApiService().translateText(resultText, "ko", "en-US",
             onComplete = { translatedText ->
                 runOnUiThread { menuname_us_tv.text = translatedText }    // 번역 성공
+                adjustTextSize(menuname_us_tv, translatedText) // 번역된 텍스트의 크기 조정
             },
             onError = { unTranslatedText ->
                 runOnUiThread { menuname_us_tv.text = unTranslatedText }    // 번역 실패
+                adjustTextSize(menuname_us_tv, unTranslatedText) // 번역되지 않은 텍스트의 크기 조정
             }
         )
     }
@@ -210,4 +212,23 @@ class MenuInfoActivity : AppCompatActivity() {
         }
         // [END image_from_path]
     }
+
+    // 글자 크기
+    private fun adjustTextSize(textView: TextView, text: String) {
+        val textWidth = textView.paint.measureText(text) // 텍스트의 폭 측정
+        val textViewWidth = textView.width - textView.paddingLeft - textView.paddingRight
+        val textViewHeight = textView.height - textView.paddingTop - textView.paddingBottom
+
+        val textSize = textView.textSize // 현재 텍스트 크기
+        val newTextSize = if (textWidth > textViewWidth || text.lines().size > 1) {
+            // 텍스트가 너무 길거나 여러 줄인 경우 텍스트 크기 조정
+            (textSize * textViewWidth / textWidth).coerceAtMost(textViewHeight.toFloat()) // 더 작은 값으로 크기 조정
+        } else {
+            // 텍스트가 적절한 크기인 경우 현재 크기 유지
+            textSize
+        }
+
+        textView.setTextSize(TypedValue.COMPLEX_UNIT_PX, newTextSize)
+    }
+
 }

@@ -1,5 +1,6 @@
 package com.example.foodfinder
 
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -24,11 +25,14 @@ class ImageAdapter(private val dataset: List<KakaoImageDocument>?) :
 
         // document가 null이 아닌 경우에만 Glide를 사용하여 이미지 로드 및 표시
         document?.let {
+            Log.d("ImageAdapter", "Loading image at position $position: ${it.thumbnail_url}")
             Glide.with(holder.itemView)
                 .load(it.thumbnail_url) // 썸네일 URL 사용
                 .centerCrop() // 이미지를 ImageView에 맞게 잘라서 표시
                 .error(R.drawable.loop) // 이미지 로딩에 실패한 경우 대체 이미지 표시
                 .into(holder.imageView)
+        } ?: kotlin.run {
+            Log.e("ImageAdapter", "Document is null at position $position")
         }
     }
 

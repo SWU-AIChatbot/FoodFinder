@@ -14,9 +14,11 @@ interface SearchNetWorkInterface {
     suspend fun getKakaoImageResponse(
         @Query("query") query: String,
         @Query("page") page: Int = 1,
-        @Query("size") size: Int = 10
+        @Query("size") size: Int = 20
     ) : Response<KakaoImageResponse>
 }
+
+
 data class KakaoImageResponse(
     val documents: List<KakaoImageDocument>?,
     val meta: KakaoImageMeta
