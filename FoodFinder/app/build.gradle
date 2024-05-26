@@ -56,7 +56,7 @@ dependencies {
     implementation 'androidx.camera:camera-lifecycle:1.1.0'
 
     // 이미지 crop
-    implementation"com.theartofdev.edmodo:android-image-cropper:2.8.0"
+    implementation "com.theartofdev.edmodo:android-image-cropper:2.8.0"
 
     // To recognize Korean script - ml kit 한국어 인식
     implementation 'com.google.mlkit:text-recognition-korean:16.0.0'
@@ -73,5 +73,4 @@ dependencies {
 
     // lifecycle
     implementation "androidx.lifecycle:lifecycle-runtime-ktx:2.3.0"
-
 }

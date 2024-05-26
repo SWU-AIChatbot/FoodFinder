@@ -3,6 +3,7 @@ package com.example.foodfinder
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.graphics.Color
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -55,6 +56,7 @@ class MenuActivity : AppCompatActivity() {
         viewBinding.captureBtn.setOnClickListener { takePhoto() }   // 카메라 찍는 버튼 클릭 시, takePhoto 함수 호출
 
         cameraExecutor = Executors.newSingleThreadExecutor()
+
     }
 
     // 사진 찍기 함수
