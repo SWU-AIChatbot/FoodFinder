@@ -47,7 +47,7 @@ class FoodInfoActivity : AppCompatActivity() {
         val exchangeRateApiService = retrofit.create(ExchangeRateApiService::class.java)
 
         // 이미지뷰, 텍스트뷰 초기화
-        val imageView: ImageView = findViewById(R.id.menu_img_iv)
+        val imageView: ImageView = findViewById(R.id.food_img_iv)
         val resultTextView: TextView = findViewById(R.id.menuname_kr_tv)    // 번역 전 텍스트뷰(이미지 인식 후 한글 텍스트뷰)
         val menunameUsTv = findViewById<TextView>(R.id.menuname_us_tv)    // 번역 후 텍스트뷰(외국어 텍스트뷰)
 
