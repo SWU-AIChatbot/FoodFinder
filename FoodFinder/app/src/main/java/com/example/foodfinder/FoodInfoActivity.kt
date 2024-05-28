@@ -14,6 +14,7 @@ import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
@@ -46,12 +47,21 @@ class FoodInfoActivity : AppCompatActivity() {
         val exchangeRateApiService = retrofit.create(ExchangeRateApiService::class.java)
 
         // 이미지뷰, 텍스트뷰 초기화
-        val imageView: ImageView = findViewById(R.id.menu_img_iv)
-        val resultTextView: TextView = findViewById(R.id.menuname_kr_tv)
+        val imageView: ImageView = findViewById(R.id.food_img_iv)
+        val resultTextView: TextView = findViewById(R.id.menuname_kr_tv)    // 번역 전 텍스트뷰(이미지 인식 후 한글 텍스트뷰)
+        val menunameUsTv = findViewById<TextView>(R.id.menuname_us_tv)    // 번역 후 텍스트뷰(외국어 텍스트뷰)
 
         // FoodActivity로부터 전달받은 파일 경로와 분류 결과 텍스트 가져오기
         val photoFilePath = intent.getStringExtra("image")
         val resultText: String? = intent.getStringExtra("resultText")
+
+        // 전달받은 결과 텍스트 번역 (한국어 -> 외국어)
+        if (resultText != null) {
+            translateText(resultText, menunameUsTv)   // 번역
+            CoroutineScope(Dispatchers.Main).launch {
+                translateToRomanized(resultText)
+            }
+        }
 
         val back_btn = findViewById<ImageView>(R.id.back_iv)
 
@@ -62,6 +72,7 @@ class FoodInfoActivity : AppCompatActivity() {
             startActivity(intent)
         }
         //원화 입력 시 달러 자동 변환
+
         kwrEt.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(p0: CharSequence?, p1: Int, p2: Int, p3: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
@@ -133,6 +144,34 @@ class FoodInfoActivity : AppCompatActivity() {
         resultTextView.text = resultText
     }
 
+    private suspend fun translateToRomanized(resultText: String) {
+        val menuname_kr2_tv = findViewById<TextView>(R.id.menuname_kr2_tv)
+
+        val apiService = NaverApiService.create()
+
+        try {
+            val response = withContext(Dispatchers.IO) {
+                apiService.getRomanization(resultText)
+            }
+            Log.d("로마자", "$resultText")
+            Log.d("로마자", "Response: $response") // 추가한 로그
+
+
+            if (response.aResult.isNotEmpty()) {
+                val romanizedName = response.aResult[0].aItems[0].name
+                withContext(Dispatchers.Main) {
+                    menuname_kr2_tv.text = romanizedName
+                }
+                Log.d("로마자", "$romanizedName")
+            } else {
+                Log.e("로마자", "No result found")
+            }
+        } catch (e: Exception) {
+            Log.e("로마자", "Failed to get Romanized name", e)
+        }
+    }
+
+
     // 비트맵을 주어진 각도로 회전시키는 함수
     private fun rotateBitmap(bitmap: Bitmap, rotation: Int): Bitmap {
         val matrix = Matrix()
@@ -144,5 +183,18 @@ class FoodInfoActivity : AppCompatActivity() {
         }
         // 회전된 비트맵 반환
         return Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
+    }
+
+    // DeepL을 이용한 번역(한국어 -> 외국어)
+    private fun translateText(resultText: String, menunameUsTv: TextView) {
+        // translateText(번역할 텍스트, 원본 언어, 번역할 언어)
+        DeepLApiService().translateText(resultText, "ko", "en-US",
+            onComplete = { translatedText ->
+                runOnUiThread { menunameUsTv.text = translatedText }    // 번역 성공
+            },
+            onError = { unTranslatedText ->
+                runOnUiThread { menunameUsTv.text = unTranslatedText }    // 번역 실패
+            }
+        )
     }
 }

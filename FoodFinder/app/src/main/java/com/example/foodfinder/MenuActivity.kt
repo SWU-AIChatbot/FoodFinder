@@ -3,6 +3,7 @@ package com.example.foodfinder
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.graphics.Color
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -55,6 +56,7 @@ class MenuActivity : AppCompatActivity() {
         viewBinding.captureBtn.setOnClickListener { takePhoto() }   // 카메라 찍는 버튼 클릭 시, takePhoto 함수 호출
 
         cameraExecutor = Executors.newSingleThreadExecutor()
+
     }
 
     // 사진 찍기 함수
@@ -183,7 +185,6 @@ class MenuActivity : AppCompatActivity() {
 
     // 다음 액티비티 화면으로 전환
     private fun nextActivity(imageUri: Uri) {
-        Log.d(TAG, "실험4:")
         val intent = Intent(this, MenuInfoActivity::class.java)   // 다음 화면으로 이동하기 위한 인텐트 객체 생성
         intent.putExtra("image_uri", imageUri.toString())
         startActivity(intent)  // 화면 전환

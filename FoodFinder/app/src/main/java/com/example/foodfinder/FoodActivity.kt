@@ -31,7 +31,8 @@ import java.util.concurrent.Executors
 
 class FoodActivity : AppCompatActivity() {
 
-    private val imageSize = 224
+    private val imageSize = 224 // 예시로 224를 사용합니다. 모델에 맞게 조정하세요.
+    private val TAG = "ImageClassification"
 
     private lateinit var viewBinding: ActivityFoodBinding
 
@@ -116,18 +117,39 @@ class FoodActivity : AppCompatActivity() {
         try {
             // 이미지 리사이즈
             val resizedBitmap = Bitmap.createScaledBitmap(image, imageSize, imageSize, true)
-
             Log.d(TAG, "Resized image size: ${resizedBitmap.width} x ${resizedBitmap.height}")
 
             // TensorFlow Lite 모델을 초기화하여 새로운 인스턴스를 가져옴
             val model = Model.newInstance(applicationContext)
 
-            // 입력 이미지를 피쳐로 변환하기 위해 TensorImage 생성
-            val inputFeature0 = TensorImage(DataType.FLOAT32)
-            inputFeature0.load(resizedBitmap)
+            // TensorBuffer 생성
+            val inputFeature0 = TensorBuffer.createFixedSize(intArrayOf(1, imageSize, imageSize, 3), DataType.FLOAT32)
+
+            // ByteBuffer를 생성하여 입력 이미지의 픽셀 데이터를 저장할 공간을 할당
+            val byteBuffer = ByteBuffer.allocateDirect(4 * imageSize * imageSize * 3)
+            byteBuffer.order(ByteOrder.nativeOrder())
+
+            // 입력 이미지의 픽셀 값을 int 배열로 저장
+            val intValues = IntArray(imageSize * imageSize)
+            resizedBitmap.getPixels(intValues, 0, resizedBitmap.width, 0, 0, resizedBitmap.width, resizedBitmap.height)
+
+            // 픽셀 값을 byteBuffer에 저장하여 입력 이미지를 TensorBuffer에 로드
+            var pixel = 0
+            for (i in 0 until imageSize) {
+                for (j in 0 until imageSize) {
+                    val value = intValues[pixel++]
+                    // RGB 채널 값을 정규화하여 byteBuffer에 저장
+                    byteBuffer.putFloat(((value shr 16) and 0xFF) * (1f / 255f)) // Red 채널
+                    byteBuffer.putFloat(((value shr 8) and 0xFF) * (1f / 255f))  // Green 채널
+                    byteBuffer.putFloat((value and 0xFF) * (1f / 255f))          // Blue 채널
+                }
+            }
+
+            // byteBuffer의 데이터를 TensorBuffer로 로드
+            inputFeature0.loadBuffer(byteBuffer)
 
             // 모델에 입력 이미지를 전달하여 결과를 가져옴
-            val outputs = model.process(inputFeature0.tensorBuffer)
+            val outputs = model.process(inputFeature0)
             val outputFeature0 = outputs.getOutputFeature0AsTensorBuffer()
 
             // 결과로부터 가장 높은 확률의 클래스를 찾아냄
@@ -148,6 +170,7 @@ class FoodActivity : AppCompatActivity() {
                 "파전", "주꾸미볶음", "떡볶이", "족발", "순대", "추어탕", "삼계탕", "순두부찌개", "김치찌개", "간장게장",
                 "양념게장", "비빔밥", "김밥", "배추김치", "곱창전골", "약과", "김치볶음밥", "깍두기", "도토리묵", "꿀떡", "시금치나물",
                 "제육볶음", "된장찌개", "수정과", "파김치", "만두", "라면", "장조림", "계란찜", "식혜", "유부초밥", "깻잎짱아찌")
+
             // 결과 텍스트를 해당 클래스의 음식 이름으로 설정
             resultText = classes[maxPos]
 
@@ -155,7 +178,7 @@ class FoodActivity : AppCompatActivity() {
             model.close()
         } catch (e: Exception) {
             // 예외가 발생한 경우 에러 로그 출력
-            Log.e("classifyImage", "Error during image classification: ${e.message}")
+            Log.e(TAG, "Error during image classification: ${e.message}")
             e.printStackTrace()
             // 예외가 발생한 경우 빈 문자열 반환
             return ""

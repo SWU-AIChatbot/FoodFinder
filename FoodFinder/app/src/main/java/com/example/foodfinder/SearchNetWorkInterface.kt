@@ -17,6 +17,8 @@ interface SearchNetWorkInterface {
         @Query("size") size: Int = 20
     ) : Response<KakaoImageResponse>
 }
+
+
 data class KakaoImageResponse(
     val documents: List<KakaoImageDocument>?,
     val meta: KakaoImageMeta
