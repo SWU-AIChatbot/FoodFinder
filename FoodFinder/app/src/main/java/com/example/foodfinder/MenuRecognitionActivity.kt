@@ -1,5 +1,6 @@
 package com.example.foodfinder
 
+import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
@@ -8,17 +9,19 @@ import android.graphics.Color
 import android.graphics.Matrix
 import android.graphics.Paint
 import android.graphics.RectF
+import android.net.Uri
 import android.os.Bundle
 import android.util.Log
 import android.view.MotionEvent
 import android.view.View
 import android.widget.ImageView
-import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.korean.KoreanTextRecognizerOptions
+import com.theartofdev.edmodo.cropper.CropImage
+import java.io.File
 
 class MenuRecognitionActivity : AppCompatActivity() {
 
@@ -45,6 +48,7 @@ class MenuRecognitionActivity : AppCompatActivity() {
         setContentView(R.layout.activity_menu_recognition)
 
         val back_btn = findViewById<ImageView>(R.id.back_iv)
+        val crop_btn = findViewById<ImageView>(R.id.crop_iv)
         val menu_img_iv = findViewById<ImageView>(R.id.menu_img_iv)
 
         if(intent.hasExtra("imagePath")) {
@@ -69,12 +73,12 @@ class MenuRecognitionActivity : AppCompatActivity() {
         var beforeRect: RectF? = null   // 움직이기 이전 텍스트 박스 좌표
         var isTouch: Boolean = false    // 이미지 텍스트 박스 터치 여부
 
-        menu_img_iv.setOnTouchListener { _: View, event: MotionEvent ->
-
-            Log.d("테스트1", "event: $event, event.x: ${event.x}, event.y: ${event.y}")
-
+        menu_img_iv.setOnTouchListener { v: View, event: MotionEvent ->
             when(event.action) {
                 MotionEvent.ACTION_DOWN -> {
+                    Log.d("테스트1", "event: $event")
+                    Log.d("테스트1", "event.x: ${event.x}")
+                    Log.d("테스트1", "event.y: ${event.y}")
                     for (r in recognizeMap) {   // 모든 텍스트 박스에 대해 클릭 여부 확인
                         // 클릭된 위치가 텍스트 박스ㅅ 내부일 때
                         if (event.x >= r.key.left && event.x <= r.key.right && event.y >= r.key.top && event.y <= r.key.bottom) {
@@ -121,6 +125,12 @@ class MenuRecognitionActivity : AppCompatActivity() {
             // Intent로 새 액티비티 시작
             startActivity(intent)
         }
+
+        crop_btn.setOnClickListener {
+            Log.d("테스트2", "크롭")
+            // 이미지 crop - 이미지가 성공적으로 찍혔으므로 크롭 액티비티를 시작
+            startCrop(imagePathString)
+        }
     }
 
     // 비트맵 이미지 회전
@@ -143,11 +153,16 @@ class MenuRecognitionActivity : AppCompatActivity() {
         recognizer.process(image)
             .addOnSuccessListener { visionText ->
                 for (block in visionText.textBlocks) {
+                    val blockText = block.text
+                    Log.d("테스트 - 블럭", "$blockText")
                     for (line in block.lines) {
+                        val lineText = line.text
+                        Log.d("테스트 - 라인", "$lineText")
                         for (element in line.elements) {
                             val elementText = element.text      // 텍스트
-                            val rect = RectF(element.boundingBox)   // 텍스트 박스 좌표 (left, right, top, bottom)
+                            val rect = RectF(element.boundingBox)   // 텍스트 박스 좌표 (left, top, right, bottom)
 
+                            Log.d("테스트2 - element", "$elementText")
                             Log.d("테스트2", "rect: $rect")
 
                             // 텍스트 박스 정보 저장
@@ -159,6 +174,9 @@ class MenuRecognitionActivity : AppCompatActivity() {
                         }
                     }
                 }
+
+                Log.d("테스트 - 블럭 비전", "${visionText.textBlocks}")
+
                 // 이미지 뷰에 변경된 비트맵 설정
                 (findViewById<ImageView>(R.id.menu_img_iv)).setImageBitmap(bitmap)
             }
@@ -166,6 +184,39 @@ class MenuRecognitionActivity : AppCompatActivity() {
                 Toast.makeText(this@MenuRecognitionActivity, "Text is not recognized", Toast.LENGTH_SHORT).show()
                 Log.e("RecognizeText", "텍스트 에러")
             }
+    }
+
+    private fun recognizeCrop(resultUri: Uri) {
+        val context: Context = this
+
+        // When using Korean script library - 한국어
+        val recognizer = TextRecognition.getClient(KoreanTextRecognizerOptions.Builder().build())
+
+        recognizer.process(InputImage.fromFilePath(context, resultUri))
+            .addOnSuccessListener { visionText ->
+                val resultText = visionText.text
+                nextActivity(imagePathString, resultText)   // MenuInfo 화면으로 전환
+            }
+    }
+
+    // 이미지 crop
+    private fun startCrop(imagePathString: String) {
+        val file = File(imagePathString)
+        val uri = Uri.fromFile(file)
+        CropImage.activity(uri).start(this@MenuRecognitionActivity)
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {   // 이미지 자르기 누른 후
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode == CropImage.CROP_IMAGE_ACTIVITY_REQUEST_CODE) {
+            val result: CropImage.ActivityResult = CropImage.getActivityResult(data)
+            if (resultCode == RESULT_OK) {
+                val resultUri: Uri = result.uri
+
+                // 크롭한 이미지 텍스트 인식
+                recognizeCrop(resultUri)
+            }
+        }
     }
 
     // MenuInfo 화면으로 전환

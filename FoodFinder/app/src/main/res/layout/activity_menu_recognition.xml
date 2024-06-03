@@ -8,10 +8,12 @@
     android:orientation="vertical"
     tools:context=".MenuRecognitionActivity">
 
-    <LinearLayout
-        android:layout_width="wrap_content"
+    <FrameLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal">
+        android:orientation="horizontal"
+        android:paddingBottom="10dp"
+        android:background="@color/white">
 
         <ImageView
             android:id="@+id/back_iv"
@@ -19,16 +21,25 @@
             android:layout_height="wrap_content"
             android:layout_marginStart="10dp"
             android:layout_marginTop="20dp"
+            android:paddingRight="10dp"
             android:src="@drawable/back_btn" />
 
-    </LinearLayout>
+        <ImageView
+            android:id="@+id/crop_iv"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="right"
+            android:layout_marginRight="10dp"
+            android:layout_marginTop="10dp"
+            android:src="@drawable/crop_btn" />
+
+    </FrameLayout>
 
     <ImageView
         android:id="@+id/menu_img_iv"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginHorizontal="10dp"
-        android:layout_marginVertical="10dp"
+        android:adjustViewBounds="true"
         android:layout_gravity="center_horizontal"
         android:clickable="true"
         android:background="@color/black"/>
