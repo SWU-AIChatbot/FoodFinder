@@ -111,6 +111,7 @@ class MenuRecognitionActivity : AppCompatActivity() {
                 }
                 MotionEvent.ACTION_UP -> {
                     if(isTouch == true) {   // 이미지 텍스트 박스 터치 여부가 true인 경우 (텍스트 박스 선택한 경우)
+                        recognizedText = recognizedText + ' '   // 문자열 마지막에 공백 추가
                         nextActivity(imagePathString, recognizedText)   // MenuInfo 화면으로 전환
                     }
                     true
