@@ -4,12 +4,14 @@ import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Color
+import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.camera.core.AspectRatio
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageCapture
 import androidx.camera.core.ImageCaptureException
@@ -80,8 +82,11 @@ class MenuActivity : AppCompatActivity() {
 
                         Log.d(TAG, "Photo capture succeeded: $savedUri")
 
+                        // MenuRecognition 화면으로 전환 (이미지 파일 경로를 넘김)
+                        nextActivity(photoFile.absolutePath)
+
                         // 이미지 crop - 이미지가 성공적으로 찍혔으므로 크롭 액티비티를 시작
-                        startCrop(savedUri)
+                        // startCrop(savedUri)
                     }
                 }
             )
@@ -100,12 +105,26 @@ class MenuActivity : AppCompatActivity() {
 
             // Preview
             val preview = Preview.Builder()
+                .setTargetAspectRatio(AspectRatio.RATIO_16_9)        // 16:9 비율 카메라
                 .build()
                 .also {
                     it.setSurfaceProvider(viewBinding.viewFinder.surfaceProvider)
                 }
 
-            imageCapture = ImageCapture.Builder().build()
+//            val preview = Preview.Builder()
+//                .setTargetAspectRatio(AspectRatio.RATIO_4_3)        // 4:3 비율 카메라
+//                .build()
+//                .also {
+//                    it.setSurfaceProvider(viewBinding.viewFinder.surfaceProvider)
+//                }
+
+            imageCapture = ImageCapture.Builder()
+                .setTargetAspectRatio(AspectRatio.RATIO_16_9)        // 16:9 비율 이미지
+                .build()
+
+//            imageCapture = ImageCapture.Builder()
+//                .setTargetAspectRatio(AspectRatio.RATIO_4_3)        // 4:3 비율 이미지
+//                .build()
 
             // Select back camera as a default
             val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
@@ -141,7 +160,8 @@ class MenuActivity : AppCompatActivity() {
         private const val REQUEST_CODE_PERMISSIONS = 10
         private val REQUIRED_PERMISSIONS =
             mutableListOf (
-                Manifest.permission.CAMERA
+                Manifest.permission.CAMERA,
+//                Manifest.permission.READ_EXTERNAL_STORAGE
             ).apply {
                 if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.P) {
                     add(Manifest.permission.WRITE_EXTERNAL_STORAGE)
@@ -150,43 +170,22 @@ class MenuActivity : AppCompatActivity() {
     }
 
     override fun onRequestPermissionsResult(
-        requestCode: Int, permissions: Array<String>, grantResults:
-        IntArray) {
+        requestCode: Int, permissions: Array<String>, grantResults: IntArray) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         if (requestCode == REQUEST_CODE_PERMISSIONS) {
             if (allPermissionsGranted()) {
                 startCamera()
             } else {
-                Toast.makeText(this,
-                    "Permissions not granted by the user.",
-                    Toast.LENGTH_SHORT).show()
+                Toast.makeText(this,"Permissions not granted by the user.",Toast.LENGTH_SHORT).show()
                 finish()
             }
         }
     }
 
-    // 이미지 crop
-    private fun startCrop(imageUri: Uri) {
-        CropImage.activity(imageUri).start(this@MenuActivity)
-    }
-
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {   // 이미지 자르기 누른 후
-        super.onActivityResult(requestCode, resultCode, data)
-        if (requestCode == CropImage.CROP_IMAGE_ACTIVITY_REQUEST_CODE) {
-            val result: CropImage.ActivityResult = CropImage.getActivityResult(data)
-            if (resultCode == RESULT_OK) {
-                val resultUri: Uri = result.uri
-
-                // MenuInfo 화면으로 전환
-                nextActivity(resultUri)
-            }
-        }
-    }
-
-    // 다음 액티비티 화면으로 전환
-    private fun nextActivity(imageUri: Uri) {
-        val intent = Intent(this, MenuInfoActivity::class.java)   // 다음 화면으로 이동하기 위한 인텐트 객체 생성
-        intent.putExtra("image_uri", imageUri.toString())
+    // MenuRecognition 화면으로 전환
+    private fun nextActivity(imagePath: String) {
+        val intent = Intent(this, MenuRecognitionActivity::class.java)   // 다음 화면으로 이동하기 위한 인텐트 객체 생성
+        intent.putExtra("imagePath", imagePath)
         startActivity(intent)  // 화면 전환
         finish()
     }

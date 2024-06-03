@@ -66,7 +66,7 @@ class FoodInfoActivity : AppCompatActivity() {
         val back_btn = findViewById<ImageView>(R.id.back_iv)
 
         back_btn.setOnClickListener {
-            // FoodActivity로 이동하는 Intent 생성
+            // MainActivity로 이동하는 Intent 생성
             val intent = Intent(this, MainActivity::class.java)
             // Intent로 새 액티비티 시작
             startActivity(intent)
